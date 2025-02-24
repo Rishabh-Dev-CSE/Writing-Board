@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawing Panel</title>
+</head>
+<style>
+    body{
+        user-select: none;
+    }
+  canvas{
+    margin-bottom: 30px;
+    border: 2px solid black;
+    cursor: crosshair;
+  }
+  #test{
+    margin-top: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid black;
+    width: 10px;
+  }
+  #pensize {
+    font-size: 20px;
+  }
+
+  
+  #colorPicker{
+    height: 30px;
+    width: 150px;
+    border-radius: 10px;
+    border:2px solid black;
+  }
+
+  #menuplate{
+    display: inline-flex;
+    padding: 20px;
+    height: auto;
+    width: auto;
+    /* border: 2px solid black; */
+    position: absolute;
+}
+
+#buttondiv{
+    position: relative;
+    right: -10px;
+    margin-right: 10px;
+}
+
+.btn{
+    margin: 10px;
+    position: relative;
+    color: purple;
+    font-size: 50px;
+    border: 3px groove black;
+    transition:  0.2s;
+    
+  }
+
+
+
+ .colorbox{
+    display: flex;
+    height: 50px;
+    width: 50px;
+    border: 2px solid black;
+    padding: 5px;
+    margin: 5px;
+ }
+
+ #yellow{
+    background-color: yellow;
+    color: yellow;
+ }
+
+
+ #white{
+    color:white;
+ }
+ #green{
+    background-color: green;
+    color: green;
+ }
+#blue{
+    background-color: blue;
+    color: blue;
+}
+#black{
+    background-color: black;
+}
+#red{
+    background-color: red;
+    color:red;
+}
+#namecolor{
+    font-size: 20px;
+    font-weight: bold;
+}
+
+#pencolor{
+  display: flex;
+  flex-direction: column;
+  margin: 10px;
+}
+
+.pencol{
+    text-align: center;
+    height: 50px;
+    width: 50px;
+    border: 1px solid black;
+    margin: 5px;
+}
+#pencolor{
+    padding: 5px;
+    border: 2px solid black;
+    height: fit-content;
+    width: 120px;
+}
+
+#colordiv{
+    align-items: center;
+    text-align: center;
+    height: fit-content;
+    width: 170px;
+    padding: 10px;
+    border: 2px solid black;
+}
+
+#boardname{
+
+    display: flex;
+
+}
+
+
+</style>
+<body>
+
+    
+    
+    <div id="mycanvas">
+        <canvas align="center" id="drawing-canvas" width="600px" height="500px"></canvas>
+        
+        <!-- get by user -->
+        <br>
+        <button id="otherfunction" onclick="showfunction()"> Functions > </button>
+        <div id="menuplate">
+
+            <div id="pencolor">
+                <span> pen colors </span>
+                <span class="pencol" onclick="pencolor(this)" id="black">black</span>
+                <span class="pencol" onclick="pencolor(this)" id="white">white</span>
+                <span class="pencol" onclick="pencolor(this)" id="green">green</span>
+                <span class="pencol" onclick="pencolor(this)" id="red">red</span>
+                <span id="pencolorname"></span>
+            </div>
+
+
+
+        <div>
+            <input type="color" id="colorPicker" name="colorPicker" value="#000000">
+            <input type="range" name="range" start="1" id="thickness" min="1" max="10">
+            <span id="pensize"> pen size : 5</span>
+            <div id="test"></div>
+        </div>
+        
+        
+        <div id="buttondiv">
+            <ion-icon class="btn" id="eraser" name="ellipse-outline"></ion-icon>
+            <ion-icon class="btn"  id="undo" name="arrow-undo-outline"></ion-icon>
+            <ion-icon  class="btn" name="trash-outline" id="clear"></ion-icon>
+        </div>
+        
+        <div id="colordiv">
+            <span>board background</span>
+            <span class="colorbox" id="red" onclick="canvasBg(this)">red</span>
+            <span class="colorbox" id="black" onclick="canvasBg(this)">black</span>
+            <span class="colorbox" id="blue" onclick="canvasBg(this)">blue</span>
+            <span class="colorbox" id="yellow" onclick="canvasBg(this)">yellow</span>
+            <div id="boardname">
+                <span>Board color :</span>
+                <span id="namecolor"></span>
+            </div>
+        </div>
+       </div>
+        
+    </div>
+        
+    </body>
+    <script>
+
+    // Get the canvas element
+        const colorPicker = document.getElementById('colorPicker');
+        const thickness = document.getElementById('thickness');
+        let show = document.getElementById('test');
+        let pensize = document.getElementById('pensize');
+        const eraser = document.getElementById('eraser');
+        const undo = document.getElementById('undo');
+        let namecolor = document.getElementById('namecolor');
+        let pencolorname = document.getElementById('pencolorname')
+        let col = ""
+
+
+    // Get the 2D drawing context
+        const canvas = document.getElementById("drawing-canvas");
+        const ctx = canvas.getContext('2d')
+
+    // const colorPicker = document.getElementById('getPicker');
+    const test = document.getElementById('test');
+    
+    let drawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let isErasing = false;
+    let undoStack = []
+
+   // Save the current canvas state
+function saveState() {
+    if (undoStack.length >= 20) {
+        undoStack.pop(); // Pop off the oldest state to maintain only 20
+    }
+    undoStack.push(canvas.toDataURL());
+}
+
+
+    function startDrawing(event) {
+        saveState();
+        drawing = true;
+        lastX = event.offsetX;
+        lastY = event.offsetY;
+    }
+
+   // function for stop 
+
+   function stopDrawing(){
+    drawing = false;
+   }
+ // function for drawing line
+   function draw(event){
+    if(! drawing) return;
+
+    const currentX = event.offsetX;
+    const currentY = event.offsetY;
+
+    ctx.beginPath();
+    ctx.moveTo(lastX,lastY)
+    ctx.lineTo(currentX,currentY)
+    ctx.stroke()
+
+    lastX = currentX
+    lastY = currentY
+   }
+
+   // add event listener to canvas set color
+    colorPicker.addEventListener('input', function() {
+            ctx.strokeStyle = colorPicker.value;
+
+            show.style.background = colorPicker.value;
+    });
+
+    thickness.addEventListener('input', function() {
+        ctx.lineWidth = thickness.value;
+
+        pensize.innerHTML = `pen size :${thickness.value} px `
+        show.style.height = thickness.value +'px'
+        show.style.width = thickness.value +'px'
+
+
+
+    })
+
+
+    eraser.addEventListener('click', function() {
+
+        let bcolor = ""
+
+        if(col=="red"){
+            bcolor = 'red'
+            
+        }
+        else if( col == 'black'){
+            bcolor = 'black'
+        }
+        else if(col == 'blue'){
+            bcolor = 'blue'
+        }
+        else if(col == 'yellow'){
+            bcolor = 'yellow'
+        }
+        else{
+            bcolor = 'white'
+        }
+
+
+        isErasing = !isErasing; // Toggle erasing mode
+        if (isErasing) {
+            ctx.strokeStyle = bcolor; // Canvas background color
+            ctx.lineWidth = "50";
+            
+        } else {
+            ctx.strokeStyle = colorPicker.value;
+        }
+    });
+
+// undo function
+undo.addEventListener('click', function() {
+    if (undoStack.length > 0) {
+        const lastState = undoStack.pop(); // Get the last saved state
+        const img = new Image();
+        img.src = lastState;
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            ctx.drawImage(img, 0, 0); // Draw the previous state
+        };
+    }
+});
+
+// set line color , thickness , and style (default values)
+
+ctx.lineWidth = '5'
+ctx.lineCap = 'round'
+ctx.strokeStyle = 'black'
+show.style.background = 'black';
+
+
+function pencolor(color){
+    ctx.lineWidth = '2'
+    ctx.strokeStyle = color.textContent
+    pencolorname.innerText = 'pen color :' +color.textContent
+    show.style.backgroundColor = color.textContent
+    
+}
+
+
+
+
+   // function calling 
+
+   canvas.addEventListener('mousedown', startDrawing)
+   canvas.addEventListener('mousemove', draw)
+   canvas.addEventListener('mouseup',stopDrawing)
+   canvas.addEventListener('mouseleave',stopDrawing)
+
+
+
+   function canvasBg(color){
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the entire canvas
+        // undoStack = []
+
+    col = color.textContent
+    canvas.style.backgroundColor =col
+    namecolor.innerText = col
+   }
+
+   //  clear camvas 
+
+   clear.addEventListener('click', function(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the entire canvas
+    undoStack = []
+   })
+
+</script>
+
+
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</html>
